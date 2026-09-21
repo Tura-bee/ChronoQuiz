@@ -1,2 +1,2 @@
 # ChronoQuiz
-ChronoQuiz is a JavaFX-based timed quiz application supporting multiple-choice and short-answer questions, live countdown, automatic submission, instant scoring, and answer review. Built using Java OOP, JavaFX, and multithreading.
+ChronoQuiz is a JavaFX-based desktop quiz application for timed multiple-choice and short-answer exams. It features a live countdown timer, automatic submission, instant scoring, and answer review. Questions and quiz history are stored in a local SQLite database, while an online trivia API provides fresh questions that are parsed from JSON and cached locally. The application also supports JSON import/export and demonstrates Java OOP, JavaFX, multithreading, database integration, and API/JSON handling.
