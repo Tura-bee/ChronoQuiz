@@ -171,15 +171,15 @@ public class StartController {
         bottomNav.setAlignment(Pos.CENTER);
         bottomNav.setPadding(new Insets(20, 0, 10, 0));
 
-        Button questionBankBtn = new Button("📚 Question Manager");
-        questionBankBtn.getStyleClass().addAll("button", "btn-secondary");
-        questionBankBtn.setOnAction(e -> app.showQuestionManager());
+        Button adminBtn = new Button("🔐 Admin Panel");
+        adminBtn.getStyleClass().addAll("button", "btn-secondary");
+        adminBtn.setOnAction(e -> app.showAdminPanel());
 
         Button historyBtn = new Button("📊 Past Attempts & Stats");
         historyBtn.getStyleClass().addAll("button", "btn-secondary");
         historyBtn.setOnAction(e -> app.showHistory());
 
-        bottomNav.getChildren().addAll(questionBankBtn, historyBtn);
+        bottomNav.getChildren().addAll(adminBtn, historyBtn);
         root.setBottom(bottomNav);
 
         return root;

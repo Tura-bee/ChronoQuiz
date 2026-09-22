@@ -77,11 +77,14 @@ public class QuestionManagerController {
         VBox topBox = new VBox(12);
         topBox.setPadding(new Insets(0, 0, 16, 0));
 
-        HBox headerRow = new HBox(16);
+        HBox headerRow = new HBox(12);
         headerRow.setAlignment(Pos.CENTER_LEFT);
 
-        Label title = new Label("📚 Question Bank Manager");
+        Label title = new Label("🛡️ Admin Question Manager");
         title.getStyleClass().add("app-title");
+
+        Label adminBadge = new Label("👤 Admin: Active");
+        adminBadge.getStyleClass().add("badge");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -98,7 +101,11 @@ public class QuestionManagerController {
         jsonImportBtn.getStyleClass().addAll("button", "btn-secondary");
         jsonImportBtn.setOnAction(e -> handleImportJson());
 
-        headerRow.getChildren().addAll(title, spacer, apiImportBtn, jsonExportBtn, jsonImportBtn);
+        Button logoutBtn = new Button("🚪 Logout");
+        logoutBtn.getStyleClass().addAll("button", "btn-danger");
+        logoutBtn.setOnAction(e -> app.logoutAdmin());
+
+        headerRow.getChildren().addAll(title, adminBadge, spacer, apiImportBtn, jsonExportBtn, jsonImportBtn, logoutBtn);
         topBox.getChildren().add(headerRow);
         root.setTop(topBox);
 

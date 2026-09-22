@@ -25,7 +25,17 @@ public class DatabaseTest {
             System.out.println(" - [" + q.getType() + "] " + q.getQuestionText() + " -> " + q.getCorrectAnswerDisplay());
         }
 
-        System.out.println("Database verification completed successfully!");
+        System.out.println("Testing Admin authentication...");
+        com.chronoquiz.db.AdminDAO adminDAO = new com.chronoquiz.db.AdminDAO();
+        boolean validAuth = adminDAO.authenticate("admin", "admin123");
+        boolean invalidAuth = adminDAO.authenticate("admin", "wrongPass");
+        System.out.println("Admin auth with correct password: " + validAuth);
+        System.out.println("Admin auth with wrong password: " + invalidAuth);
+        if (!validAuth || invalidAuth) {
+            throw new RuntimeException("AdminDAO verification failed!");
+        }
+
+        System.out.println("Database and Admin verification completed successfully!");
         System.exit(0);
     }
 }

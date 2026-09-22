@@ -18,6 +18,7 @@ com\chronoquiz\api\ApiService.class
 com\chronoquiz\model\Quiz.class
 com\chronoquiz\api\ApiQuestion.class
 com\chronoquiz\api\ApiService$1.class
+com\chronoquiz\db\AdminDAO.class
 com\chronoquiz\controller\ReviewController.class
 com\chronoquiz\db\QuestionDAO.class
 com\chronoquiz\controller\QuizController$1.class
@@ -30,4 +31,5 @@ com\chronoquiz\model\ShortAnswerQuestion.class
 com\chronoquiz\controller\HistoryController.class
 com\chronoquiz\controller\QuestionManagerController.class
 com\chronoquiz\controller\QuizController$2.class
+com\chronoquiz\controller\AdminLoginController.class
 com\chronoquiz\api\ApiQuestionMapper.class

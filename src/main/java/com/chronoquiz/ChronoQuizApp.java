@@ -1,5 +1,6 @@
 package com.chronoquiz;
 
+import com.chronoquiz.controller.AdminLoginController;
 import com.chronoquiz.controller.HistoryController;
 import com.chronoquiz.controller.QuestionManagerController;
 import com.chronoquiz.controller.QuizController;
@@ -85,11 +86,41 @@ public class ChronoQuizApp extends Application {
         primaryStage.setScene(scene);
     }
 
-    public void showQuestionManager() {
-        QuestionManagerController controller = new QuestionManagerController(this);
-        Scene scene = new Scene(controller.getView(), 1020, 740);
+    private boolean adminLoggedIn = false;
+
+    public boolean isAdminLoggedIn() {
+        return adminLoggedIn;
+    }
+
+    public void setAdminLoggedIn(boolean adminLoggedIn) {
+        this.adminLoggedIn = adminLoggedIn;
+    }
+
+    public void showAdminLogin() {
+        AdminLoginController controller = new AdminLoginController(this);
+        Scene scene = new Scene(controller.getView(), 960, 700);
         applyTheme(scene);
         primaryStage.setScene(scene);
+    }
+
+    public void showAdminPanel() {
+        if (!adminLoggedIn) {
+            showAdminLogin();
+            return;
+        }
+        QuestionManagerController controller = new QuestionManagerController(this);
+        Scene scene = new Scene(controller.getView(), 1040, 750);
+        applyTheme(scene);
+        primaryStage.setScene(scene);
+    }
+
+    public void logoutAdmin() {
+        this.adminLoggedIn = false;
+        showStartScreen();
+    }
+
+    public void showQuestionManager() {
+        showAdminPanel();
     }
 
     public void showHistory() {
