@@ -35,6 +35,30 @@ public class DatabaseTest {
             throw new RuntimeException("AdminDAO verification failed!");
         }
 
+        System.out.println("Testing Attempt saving...");
+        com.chronoquiz.db.AttemptDAO attemptDAO = new com.chronoquiz.db.AttemptDAO();
+        com.chronoquiz.model.Player p = new com.chronoquiz.db.UserDAO().getOrCreateUser("TestPlayer");
+        com.chronoquiz.model.Question testQ = questions.get(0);
+        testQ.setUserAnswer("TestAnswer");
+        com.chronoquiz.model.Quiz quiz = new com.chronoquiz.model.Quiz(p, 0, "All Categories", "easy", 60, java.util.List.of(testQ));
+        com.chronoquiz.model.Attempt attempt = quiz.toAttempt();
+        boolean saved = attemptDAO.saveAttempt(attempt);
+        System.out.println("Attempt save result: " + saved);
+
+        List<com.chronoquiz.model.Attempt> history = attemptDAO.getAllAttempts(null);
+        System.out.println("Loaded " + history.size() + " attempts from History table:");
+        for (com.chronoquiz.model.Attempt a : history) {
+            System.out.println(" - Attempt #" + a.getId() + " by " + a.getUserName() + " (" + a.getCategoryName() + "): " + a.getScore() + "/" + a.getTotal());
+        }
+
+        if (!history.isEmpty()) {
+            List<com.chronoquiz.model.AttemptAnswer> answers = attemptDAO.getAnswersForAttempt(history.get(0).getId());
+            System.out.println("Loaded " + answers.size() + " answers for attempt #" + history.get(0).getId());
+        }
+
+        // Clean up test attempts so database is clean for actual user quizzes
+        attemptDAO.clearHistory();
+
         System.out.println("Database and Admin verification completed successfully!");
         System.exit(0);
     }

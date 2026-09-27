@@ -230,19 +230,21 @@ public class StartController {
     }
 
     private void loadLocalQuestions(Player player, String categoryName, String difficulty, int count, int timeLimit) {
+        int initialCatId = 0;
+        if (!"All Categories".equalsIgnoreCase(categoryName)) {
+            for (Category c : questionDAO.getAllCategories()) {
+                if (c.getName().equalsIgnoreCase(categoryName)) {
+                    initialCatId = c.getId();
+                    break;
+                }
+            }
+        }
+        final int resolvedCatId = initialCatId;
+
         Task<List<Question>> task = new Task<>() {
             @Override
             protected List<Question> call() {
-                int catId = 0;
-                if (!"All Categories".equalsIgnoreCase(categoryName)) {
-                    for (Category c : questionDAO.getAllCategories()) {
-                        if (c.getName().equalsIgnoreCase(categoryName)) {
-                            catId = c.getId();
-                            break;
-                        }
-                    }
-                }
-                List<Question> questions = questionDAO.getQuestionsForQuiz(catId, difficulty, count);
+                List<Question> questions = questionDAO.getQuestionsForQuiz(resolvedCatId, difficulty, count);
                 // If not enough questions in specific difficulty/category, fetch any local questions as fallback
                 if (questions.isEmpty()) {
                     questions = questionDAO.getQuestionsForQuiz(0, "any", count);
@@ -262,7 +264,7 @@ public class StartController {
                 return;
             }
 
-            Quiz quiz = new Quiz(player, 0, categoryName, difficulty, timeLimit, questions);
+            Quiz quiz = new Quiz(player, resolvedCatId, categoryName, difficulty, timeLimit, questions);
             app.startQuiz(quiz);
         });
 
@@ -283,6 +285,17 @@ public class StartController {
             apiCatId = ApiService.CATEGORY_MAP.get(categoryName);
         }
 
+        int onlineCatId = 0;
+        if (!"All Categories".equalsIgnoreCase(categoryName)) {
+            for (Category c : questionDAO.getAllCategories()) {
+                if (c.getName().equalsIgnoreCase(categoryName)) {
+                    onlineCatId = c.getId();
+                    break;
+                }
+            }
+        }
+        final int resolvedOnlineCatId = onlineCatId;
+
         apiService.fetchQuestionsAsync(count, apiCatId, difficulty)
             .thenAccept(questions -> Platform.runLater(() -> {
                 startButton.setDisable(false);
@@ -293,7 +306,7 @@ public class StartController {
                     return;
                 }
 
-                Quiz quiz = new Quiz(player, 0, categoryName, difficulty, timeLimit, questions);
+                Quiz quiz = new Quiz(player, resolvedOnlineCatId, categoryName, difficulty, timeLimit, questions);
                 app.startQuiz(quiz);
             }))
             .exceptionally(ex -> {

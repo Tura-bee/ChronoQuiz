@@ -113,12 +113,22 @@ public class DatabaseManager {
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     attempt_id INTEGER,
                     question_id INTEGER,
+                    question_text TEXT,
+                    correct_answer TEXT,
                     user_answer TEXT,
                     is_correct INTEGER,
                     FOREIGN KEY(attempt_id) REFERENCES attempts(id) ON DELETE CASCADE,
                     FOREIGN KEY(question_id) REFERENCES questions(id)
                 );
             """);
+
+            // Migration for existing databases
+            try {
+                stmt.execute("ALTER TABLE attempt_answers ADD COLUMN question_text TEXT;");
+            } catch (SQLException ignored) {}
+            try {
+                stmt.execute("ALTER TABLE attempt_answers ADD COLUMN correct_answer TEXT;");
+            } catch (SQLException ignored) {}
 
             // 7. admins table
             stmt.execute("""

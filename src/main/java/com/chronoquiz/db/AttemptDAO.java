@@ -25,16 +25,70 @@ public class AttemptDAO {
             VALUES (?, ?, ?, ?, ?);
         """;
 
-        String insertAnswerSql = """
-            INSERT INTO attempt_answers (attempt_id, question_id, user_answer, is_correct)
-            VALUES (?, ?, ?, ?);
-        """;
-
         try (Connection conn = dbManager.getConnection()) {
             conn.setAutoCommit(false);
+
+            // 1. Resolve or verify user_id
+            Integer validUserId = null;
+            if (attempt.getUserId() > 0) {
+                try (PreparedStatement psUser = conn.prepareStatement("SELECT id FROM users WHERE id = ?;")) {
+                    psUser.setInt(1, attempt.getUserId());
+                    try (ResultSet rs = psUser.executeQuery()) {
+                        if (rs.next()) {
+                            validUserId = attempt.getUserId();
+                        }
+                    }
+                }
+            }
+            if (validUserId == null && attempt.getUserName() != null && !attempt.getUserName().trim().isEmpty()) {
+                try (PreparedStatement psName = conn.prepareStatement("SELECT id FROM users WHERE name = ? COLLATE NOCASE LIMIT 1;")) {
+                    psName.setString(1, attempt.getUserName().trim());
+                    try (ResultSet rs = psName.executeQuery()) {
+                        if (rs.next()) {
+                            validUserId = rs.getInt("id");
+                        }
+                    }
+                }
+            }
+
+            // 2. Resolve or verify category_id
+            Integer validCategoryId = null;
+            if (attempt.getCategoryId() > 0) {
+                try (PreparedStatement psCat = conn.prepareStatement("SELECT id FROM categories WHERE id = ?;")) {
+                    psCat.setInt(1, attempt.getCategoryId());
+                    try (ResultSet rs = psCat.executeQuery()) {
+                        if (rs.next()) {
+                            validCategoryId = attempt.getCategoryId();
+                        }
+                    }
+                }
+            }
+            if (validCategoryId == null && attempt.getCategoryName() != null
+                && !attempt.getCategoryName().equalsIgnoreCase("All Categories")
+                && !attempt.getCategoryName().trim().isEmpty()) {
+                try (PreparedStatement psCatName = conn.prepareStatement("SELECT id FROM categories WHERE name = ? COLLATE NOCASE LIMIT 1;")) {
+                    psCatName.setString(1, attempt.getCategoryName().trim());
+                    try (ResultSet rs = psCatName.executeQuery()) {
+                        if (rs.next()) {
+                            validCategoryId = rs.getInt("id");
+                        }
+                    }
+                }
+            }
+
             try (PreparedStatement psAttempt = conn.prepareStatement(insertAttemptSql, Statement.RETURN_GENERATED_KEYS)) {
-                psAttempt.setInt(1, attempt.getUserId());
-                psAttempt.setInt(2, attempt.getCategoryId());
+                if (validUserId != null) {
+                    psAttempt.setInt(1, validUserId);
+                } else {
+                    psAttempt.setNull(1, java.sql.Types.INTEGER);
+                }
+
+                if (validCategoryId != null) {
+                    psAttempt.setInt(2, validCategoryId);
+                } else {
+                    psAttempt.setNull(2, java.sql.Types.INTEGER);
+                }
+
                 psAttempt.setInt(3, attempt.getScore());
                 psAttempt.setInt(4, attempt.getTotal());
                 psAttempt.setInt(5, attempt.getTimeTakenSec());
@@ -49,12 +103,53 @@ public class AttemptDAO {
                 }
 
                 if (attemptId > 0 && attempt.getAnswers() != null && !attempt.getAnswers().isEmpty()) {
+                    boolean hasTextCols = false;
+                    try (Statement checkStmt = conn.createStatement();
+                         ResultSet rsCols = checkStmt.executeQuery("PRAGMA table_info(attempt_answers);")) {
+                        while (rsCols.next()) {
+                            if ("question_text".equalsIgnoreCase(rsCols.getString("name"))) {
+                                hasTextCols = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    String insertAnswerSql = hasTextCols
+                        ? "INSERT INTO attempt_answers (attempt_id, question_id, question_text, correct_answer, user_answer, is_correct) VALUES (?, ?, ?, ?, ?, ?);"
+                        : "INSERT INTO attempt_answers (attempt_id, question_id, user_answer, is_correct) VALUES (?, ?, ?, ?);";
+
                     try (PreparedStatement psAnswer = conn.prepareStatement(insertAnswerSql)) {
                         for (AttemptAnswer ans : attempt.getAnswers()) {
                             psAnswer.setInt(1, attemptId);
-                            psAnswer.setInt(2, ans.getQuestionId());
-                            psAnswer.setString(3, ans.getUserAnswer());
-                            psAnswer.setInt(4, ans.isCorrect() ? 1 : 0);
+
+                            // Verify question_id exists in questions table to avoid foreign key failure
+                            Integer validQId = null;
+                            if (ans.getQuestionId() > 0) {
+                                try (PreparedStatement psQCheck = conn.prepareStatement("SELECT id FROM questions WHERE id = ?;")) {
+                                    psQCheck.setInt(1, ans.getQuestionId());
+                                    try (ResultSet rs = psQCheck.executeQuery()) {
+                                        if (rs.next()) {
+                                            validQId = ans.getQuestionId();
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (validQId != null) {
+                                psAnswer.setInt(2, validQId);
+                            } else {
+                                psAnswer.setNull(2, java.sql.Types.INTEGER);
+                            }
+
+                            if (hasTextCols) {
+                                psAnswer.setString(3, ans.getQuestionText());
+                                psAnswer.setString(4, ans.getCorrectAnswer());
+                                psAnswer.setString(5, ans.getUserAnswer());
+                                psAnswer.setInt(6, ans.isCorrect() ? 1 : 0);
+                            } else {
+                                psAnswer.setString(3, ans.getUserAnswer());
+                                psAnswer.setInt(4, ans.isCorrect() ? 1 : 0);
+                            }
                             psAnswer.addBatch();
                         }
                         psAnswer.executeBatch();
@@ -71,6 +166,7 @@ public class AttemptDAO {
             }
         } catch (SQLException e) {
             System.err.println("Error saving attempt: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
@@ -124,8 +220,8 @@ public class AttemptDAO {
         List<AttemptAnswer> list = new ArrayList<>();
         String sql = """
             SELECT aa.id, aa.attempt_id, aa.question_id, aa.user_answer, aa.is_correct,
-                   COALESCE(q.text, 'Question text not available') as question_text,
-                   COALESCE(q.correct_answer, '') as correct_answer
+                   COALESCE(aa.question_text, q.text, 'Question text not available') as question_text,
+                   COALESCE(aa.correct_answer, q.correct_answer, '') as correct_answer
             FROM attempt_answers aa
             LEFT JOIN questions q ON aa.question_id = q.id
             WHERE aa.attempt_id = ?
